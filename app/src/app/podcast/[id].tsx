@@ -24,6 +24,7 @@ export default function PodcastScreen() {
   const [waitingNext, setWaitingNext] = useState(false);
   const [rate, setRate] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [tab, setTab] = useState<'escuchar' | 'guion'>('escuchar');
   const pendingSeek = useRef<number | null>(null);
   const announced = useRef(0);
 
@@ -200,6 +201,21 @@ export default function PodcastScreen() {
   const p = detail.podcast;
   const generating = !finished;
 
+  const playPause = (
+    <Pressable
+      onPress={togglePlay}
+      accessibilityRole="button"
+      accessibilityLabel={status.playing ? 'Pausar' : 'Reproducir'}
+      style={[styles.play, { backgroundColor: theme.accent }]}
+    >
+      {status.playing ? (
+        <Pause color={theme.onAccent} size={32} fill={theme.onAccent} />
+      ) : (
+        <Play color={theme.onAccent} size={32} fill={theme.onAccent} style={{ marginLeft: 4 }} />
+      )}
+    </Pressable>
+  );
+
   return (
     <>
       <Stack.Screen options={{ title: modeLabel[p.mode] }} />
@@ -212,7 +228,41 @@ export default function PodcastScreen() {
           </AppText>
         </View>
 
-        {readyBlocks.length === 0 && generating ? <Progress detail={detail} /> : null}
+        <View style={styles.actions}>
+          {detail.downloadUrl ? (
+            <ActionButton
+              label={finished ? 'Descargar MP3' : 'MP3 (hasta ahora)'}
+              hint="Guarda el podcast en un archivo de audio"
+              onPress={download}
+              icon={<Download color={theme.text} size={20} strokeWidth={1.75} />}
+            />
+          ) : null}
+          <ActionButton
+            label={confirmDelete ? '¿Seguro? Pulsa otra vez' : 'Borrar'}
+            onPress={remove}
+            danger
+            icon={<Trash2 color={theme.error} size={20} strokeWidth={1.75} />}
+          />
+        </View>
+
+        <View style={[styles.tabs, { backgroundColor: theme.surface, borderColor: theme.border }]} accessibilityRole="tablist">
+          {(['escuchar', 'guion'] as const).map((t) => {
+            const selected = tab === t;
+            return (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected }}
+                style={[styles.tab, selected ? { backgroundColor: theme.accentSoft, borderColor: theme.accent } : { borderColor: 'transparent' }]}
+              >
+                <AppText variant="label" tone={selected ? 'accent' : 'secondary'}>
+                  {t === 'escuchar' ? 'Escuchar' : 'Guion'}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
 
         {p.status === 'FAILED' ? (
           <Card style={{ backgroundColor: theme.errorSoft, borderColor: theme.errorSoft }}>
@@ -222,139 +272,159 @@ export default function PodcastScreen() {
           </Card>
         ) : null}
 
-        {readyBlocks.length > 0 ? (
-          <Card style={{ gap: spacing(4), alignItems: 'center' }}>
-            {current === null ? (
-              <Button label="Escuchar ya" icon={<Play color={theme.onAccent} size={20} fill={theme.onAccent} />} onPress={togglePlay} style={{ alignSelf: 'stretch' }} />
-            ) : (
-              <>
-                <AppText variant="caption" tone="secondary" accessibilityLabel={`Posición ${formatDuration(positionMs)} de ${formatDuration(totalMs)}`}>
-                  {formatDuration(positionMs)} / {formatDuration(totalMs)}
-                  {generating ? ' · generando más…' : ''}
-                </AppText>
-                <View
-                  style={[styles.track, { backgroundColor: theme.accentSoft }]}
-                  accessibilityRole="progressbar"
-                  accessibilityValue={{ min: 0, max: Math.round(totalMs / 1000), now: Math.round(positionMs / 1000) }}
-                >
-                  <View style={[styles.fill, { backgroundColor: theme.accent, width: `${totalMs > 0 ? Math.min(100, (positionMs / totalMs) * 100) : 0}%` }]} />
-                </View>
-                <View style={styles.controls}>
-                  <RoundButton label="Retroceder 15 segundos" onPress={() => skip(-15)}>
-                    <RotateCcw color={theme.text} size={26} strokeWidth={1.75} />
-                  </RoundButton>
-                  <Pressable
-                    onPress={togglePlay}
-                    accessibilityRole="button"
-                    accessibilityLabel={status.playing ? 'Pausar' : 'Reproducir'}
-                    style={[styles.play, { backgroundColor: theme.accent }]}
-                  >
-                    {status.playing ? (
-                      <Pause color={theme.onAccent} size={32} fill={theme.onAccent} />
-                    ) : (
-                      <Play color={theme.onAccent} size={32} fill={theme.onAccent} style={{ marginLeft: 4 }} />
-                    )}
-                  </Pressable>
-                  <RoundButton label="Avanzar 15 segundos" onPress={() => skip(15)}>
-                    <RotateCw color={theme.text} size={26} strokeWidth={1.75} />
-                  </RoundButton>
-                </View>
-                <Pressable
-                  onPress={cycleRate}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Velocidad ${rate} por. Cambiar velocidad`}
-                  style={[styles.rate, { borderColor: theme.border }]}
-                >
-                  <AppText variant="label">{rate.toString().replace('.', ',')}x</AppText>
-                </Pressable>
-                {waitingNext ? (
-                  <AppText variant="caption" tone="secondary" accessibilityLiveRegion="polite">
-                    Preparando el siguiente bloque…
-                  </AppText>
-                ) : null}
-              </>
-            )}
-          </Card>
-        ) : null}
+        {tab === 'escuchar' ? (
+          <>
+            {readyBlocks.length === 0 && generating ? <Progress detail={detail} /> : null}
 
-        {readyBlocks.length > 0 ? (
+            {readyBlocks.length > 0 ? (
+              <Card style={{ gap: spacing(4), alignItems: 'center' }}>
+                {current === null ? (
+                  <Button label="Escuchar ya" icon={<Play color={theme.onAccent} size={20} fill={theme.onAccent} />} onPress={togglePlay} style={{ alignSelf: 'stretch' }} />
+                ) : (
+                  <>
+                    <AppText variant="caption" tone="secondary" accessibilityLabel={`Posición ${formatDuration(positionMs)} de ${formatDuration(totalMs)}`}>
+                      {formatDuration(positionMs)} / {formatDuration(totalMs)}
+                      {generating ? ' · generando más…' : ''}
+                    </AppText>
+                    <View
+                      style={[styles.track, { backgroundColor: theme.accentSoft }]}
+                      accessibilityRole="progressbar"
+                      accessibilityValue={{ min: 0, max: Math.round(totalMs / 1000), now: Math.round(positionMs / 1000) }}
+                    >
+                      <View style={[styles.fill, { backgroundColor: theme.accent, width: `${totalMs > 0 ? Math.min(100, (positionMs / totalMs) * 100) : 0}%` }]} />
+                    </View>
+                    <View style={styles.controls}>
+                      <RoundButton label="Retroceder 15 segundos" onPress={() => skip(-15)}>
+                        <RotateCcw color={theme.text} size={26} strokeWidth={1.75} />
+                      </RoundButton>
+                      {playPause}
+                      <RoundButton label="Avanzar 15 segundos" onPress={() => skip(15)}>
+                        <RotateCw color={theme.text} size={26} strokeWidth={1.75} />
+                      </RoundButton>
+                    </View>
+                    <Pressable
+                      onPress={cycleRate}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Velocidad ${rate} por. Cambiar velocidad`}
+                      style={[styles.rate, { borderColor: theme.border }]}
+                    >
+                      <AppText variant="label">{rate.toString().replace('.', ',')}x</AppText>
+                    </Pressable>
+                    {waitingNext ? (
+                      <AppText variant="caption" tone="secondary" accessibilityLiveRegion="polite">
+                        Preparando el siguiente bloque…
+                      </AppText>
+                    ) : null}
+                  </>
+                )}
+              </Card>
+            ) : null}
+
+            {blocks.some((b) => b.status === 'READY' || b.status === 'PENDING') ? (
+              <View style={{ gap: spacing(1) }}>
+                <AppText variant="heading">Capítulos</AppText>
+                {blocks
+                  .filter((b) => b.status === 'READY' || b.status === 'PENDING')
+                  .map((block) => (
+                    <Pressable
+                      key={block.index}
+                      onPress={() => block.status === 'READY' && loadBlock(block)}
+                      disabled={block.status !== 'READY'}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Capítulo ${block.index + 1}: ${block.title}${block.status === 'READY' ? '' : ', generándose'}`}
+                      style={styles.chapter}
+                    >
+                      <AppText variant="label" tone={current === block.index ? 'accent' : 'primary'} style={{ flexShrink: 1 }}>
+                        {block.index + 1}. {block.title}
+                      </AppText>
+                      <AppText variant="caption" tone="secondary">
+                        {block.status === 'READY' ? formatDuration(block.durationMs) : 'generando…'}
+                      </AppText>
+                    </Pressable>
+                  ))}
+              </View>
+            ) : null}
+
+            {finished ? <QualityNote detail={detail} /> : null}
+          </>
+        ) : (
           <View style={{ gap: spacing(3) }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <AppText variant="heading">Transcripción</AppText>
-              <Pressable onPress={shareTranscript} accessibilityRole="button" accessibilityLabel="Descargar o compartir la transcripción" style={styles.iconButton}>
-                <Share2 color={theme.text} size={22} strokeWidth={1.75} />
-              </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing(3) }}>
+              {readyBlocks.length > 0 ? (
+                <Pressable
+                  onPress={togglePlay}
+                  accessibilityRole="button"
+                  accessibilityLabel={status.playing ? 'Pausar' : 'Reproducir'}
+                  style={[styles.miniPlay, { backgroundColor: theme.accent }]}
+                >
+                  {status.playing ? <Pause color={theme.onAccent} size={20} fill={theme.onAccent} /> : <Play color={theme.onAccent} size={20} fill={theme.onAccent} style={{ marginLeft: 2 }} />}
+                </Pressable>
+              ) : null}
+              <AppText variant="caption" tone="secondary" style={{ flex: 1 }}>
+                {readyBlocks.length > 0 ? 'Toca una frase para escucharla desde ahí.' : 'El guion aparecerá aquí en cuanto esté el primer bloque.'}
+              </AppText>
+              {readyBlocks.length > 0 ? (
+                <Pressable onPress={shareTranscript} accessibilityRole="button" accessibilityLabel="Descargar o compartir el guion" style={styles.iconButton}>
+                  <Share2 color={theme.text} size={22} strokeWidth={1.75} />
+                </Pressable>
+              ) : null}
             </View>
-            {blocks
-              .filter((b) => b.status === 'READY' || b.status === 'PENDING')
-              .map((block) => (
-                <View key={block.index} style={{ gap: spacing(2) }}>
-                  <Pressable
-                    onPress={() => block.status === 'READY' && loadBlock(block)}
-                    disabled={block.status !== 'READY'}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Capítulo ${block.index + 1}: ${block.title}${block.status === 'READY' ? '' : ', generándose'}`}
-                    style={styles.chapter}
-                  >
-                    <AppText variant="label" tone={current === block.index ? 'accent' : 'primary'}>
-                      {block.index + 1}. {block.title}
-                    </AppText>
-                    <AppText variant="caption" tone="secondary">
-                      {block.status === 'READY' ? formatDuration(block.durationMs) : 'generando…'}
-                    </AppText>
-                  </Pressable>
-                  {block.segments.map((s) => {
-                    const active = current === block.index && currentMs >= s.startMs && currentMs < s.endMs;
-                    return (
-                      <Pressable
-                        key={s.position}
-                        onPress={() => (current === block.index ? player.seekTo(s.startMs / 1000).catch(() => undefined) : loadBlock(block, s.startMs / 1000))}
-                        accessibilityRole="button"
-                        accessibilityLabel={`${s.speakerName}: ${s.text}. Página ${s.pages.join(', ')}`}
-                        accessibilityHint="Reproduce desde esta frase"
-                        accessibilityState={{ selected: active }}
-                        style={[
-                          styles.segment,
-                          { backgroundColor: active ? theme.accentSoft : 'transparent', borderLeftColor: active ? theme.accent : 'transparent' },
-                        ]}
-                      >
-                        <AppText variant="caption" tone={s.speaker === 'LIA' ? 'accent' : 'secondary'} style={{ fontFamily: fonts.semibold }}>
-                          {s.speakerName}
+            {readyBlocks.map((block) => (
+              <View key={block.index} style={{ gap: spacing(2) }}>
+                <AppText variant="heading" tone={current === block.index ? 'accent' : 'primary'}>
+                  {block.index + 1}. {block.title}
+                </AppText>
+                {block.segments.map((s) => {
+                  const active = current === block.index && currentMs >= s.startMs && currentMs < s.endMs;
+                  return (
+                    <Pressable
+                      key={s.position}
+                      onPress={() => (current === block.index ? player.seekTo(s.startMs / 1000).catch(() => undefined) : loadBlock(block, s.startMs / 1000))}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${s.speakerName}: ${s.text}. Página ${s.pages.join(', ')}`}
+                      accessibilityHint="Reproduce desde esta frase"
+                      accessibilityState={{ selected: active }}
+                      style={[
+                        styles.segment,
+                        { backgroundColor: active ? theme.accentSoft : 'transparent', borderLeftColor: active ? theme.accent : 'transparent' },
+                      ]}
+                    >
+                      <AppText variant="caption" tone={s.speaker === 'LIA' ? 'accent' : 'secondary'} style={{ fontFamily: fonts.semibold }}>
+                        {s.speakerName}
+                      </AppText>
+                      <AppText>{s.text}</AppText>
+                      {s.pages.length > 0 ? (
+                        <AppText variant="caption" tone="secondary">
+                          {s.pages.length === 1 ? 'Página' : 'Páginas'} {s.pages.join(', ')} del PDF
                         </AppText>
-                        <AppText>{s.text}</AppText>
-                        {s.pages.length > 0 ? (
-                          <AppText variant="caption" tone="secondary">
-                            {s.pages.length === 1 ? 'Página' : 'Páginas'} {s.pages.join(', ')} del PDF
-                          </AppText>
-                        ) : null}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ))}
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
           </View>
-        ) : null}
-
-        {detail.downloadUrl ? (
-          <Button
-            label={finished ? 'Descargar MP3' : 'Descargar lo que hay hasta ahora (MP3)'}
-            variant="secondary"
-            icon={<Download color={theme.text} size={20} strokeWidth={1.75} />}
-            onPress={download}
-            accessibilityHint="Guarda el podcast completo en un archivo de audio"
-          />
-        ) : null}
-
-        {finished ? <QualityNote detail={detail} /> : null}
-
-        <Button
-          label={confirmDelete ? 'Pulsa otra vez para borrarlo' : 'Borrar podcast'}
-          variant="danger"
-          icon={<Trash2 color={theme.error} size={20} strokeWidth={1.75} />}
-          onPress={remove}
-        />
+        )}
       </Screen>
     </>
+  );
+}
+
+function ActionButton({ label, hint, onPress, icon, danger = false }: { label: string; hint?: string; onPress: () => void; icon: React.ReactNode; danger?: boolean }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      style={[styles.action, { borderColor: danger ? theme.errorSoft : theme.border, backgroundColor: theme.surface }]}
+    >
+      {icon}
+      <AppText variant="label" tone={danger ? 'error' : 'primary'}>
+        {label}
+      </AppText>
+    </Pressable>
   );
 }
 
@@ -419,5 +489,10 @@ const styles = StyleSheet.create({
   iconButton: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   chapter: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing(2) },
   segment: { paddingVertical: spacing(2), paddingHorizontal: spacing(3), borderRadius: radius, borderLeftWidth: 3, gap: spacing(1) },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing(2) },
+  action: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing(2), paddingHorizontal: spacing(4), borderRadius: radius, borderWidth: 1 },
+  tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: radius, padding: spacing(1), gap: spacing(1) },
+  tab: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius, borderWidth: 1 },
+  miniPlay: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
 });
