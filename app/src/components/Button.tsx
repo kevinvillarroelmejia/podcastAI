@@ -20,9 +20,9 @@ export function Button({ label, onPress, variant = 'primary', icon, disabled, lo
   const inactive = disabled || loading;
   const palette = {
     primary: { bg: theme.accent, fg: 'onAccent' as const, border: theme.accent },
-    secondary: { bg: theme.surface, fg: 'primary' as const, border: theme.border },
+    secondary: { bg: theme.background, fg: 'primary' as const, border: theme.accent },
     ghost: { bg: 'transparent', fg: 'accent' as const, border: 'transparent' },
-    danger: { bg: theme.errorSoft, fg: 'error' as const, border: theme.errorSoft },
+    danger: { bg: theme.background, fg: 'error' as const, border: theme.error },
   }[variant];
   return (
     <Pressable
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   base: {
     minHeight: 52,
     borderRadius: radius,
-    borderWidth: 1,
+    borderWidth: 2,
     paddingHorizontal: spacing(5),
     justifyContent: 'center',
   },

@@ -4,11 +4,11 @@ import { fonts, useTheme } from '../lib/theme';
 type Variant = 'title' | 'heading' | 'body' | 'label' | 'caption';
 
 const sizes: Record<Variant, { fontSize: number; lineHeight: number; fontFamily: string }> = {
-  title: { fontSize: 28, lineHeight: 34, fontFamily: fonts.bold },
-  heading: { fontSize: 20, lineHeight: 26, fontFamily: fonts.semibold },
-  body: { fontSize: 16, lineHeight: 24, fontFamily: fonts.regular },
-  label: { fontSize: 16, lineHeight: 22, fontFamily: fonts.medium },
-  caption: { fontSize: 14, lineHeight: 20, fontFamily: fonts.regular },
+  title: { fontSize: 18, lineHeight: 30, fontFamily: fonts.pixel },
+  heading: { fontSize: 13, lineHeight: 22, fontFamily: fonts.pixel },
+  body: { fontSize: 22, lineHeight: 26, fontFamily: fonts.regular },
+  label: { fontSize: 22, lineHeight: 26, fontFamily: fonts.medium },
+  caption: { fontSize: 19, lineHeight: 22, fontFamily: fonts.regular },
 };
 
 interface Props extends TextProps {
@@ -16,7 +16,7 @@ interface Props extends TextProps {
   tone?: 'primary' | 'secondary' | 'accent' | 'error' | 'onAccent';
 }
 
-/** Texto de la app: Inter, mínimo 16 px en cuerpo y respeta el tamaño de letra del sistema. */
+/** Texto de la app: VT323 (terminal) y Press Start 2P en títulos; respeta el tamaño de letra del sistema. */
 export function AppText({ variant = 'body', tone = 'primary', style, ...rest }: Props) {
   const theme = useTheme();
   const color = {

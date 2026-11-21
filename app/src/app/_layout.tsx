@@ -1,14 +1,15 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useColorScheme, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { useFonts } from 'expo-font';
+import { VT323_400Regular } from '@expo-google-fonts/vt323';
+import { PressStart2P_400Regular } from '@expo-google-fonts/press-start-2p';
 import { fonts, useTheme } from '../lib/theme';
 
 export default function RootLayout() {
   const theme = useTheme();
-  const scheme = useColorScheme();
-  const [loaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  const [loaded] = useFonts({ VT323_400Regular, PressStart2P_400Regular });
 
   if (!loaded) {
     return <View style={{ flex: 1, backgroundColor: theme.background }} />;
@@ -16,12 +17,12 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
-          headerTitleStyle: { fontFamily: fonts.semibold, fontSize: 18 },
+          headerTitleStyle: { fontFamily: fonts.pixel, fontSize: 12 },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: theme.background },
         }}

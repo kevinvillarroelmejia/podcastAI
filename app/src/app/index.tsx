@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
-import { CircleUser, FileText, Headphones, Plus, Sparkles } from 'lucide-react-native';
+import { CircleUser, Plus } from 'lucide-react-native';
 import { api, ApiError, type PodcastSummary } from '../lib/api';
 import { formatDuration, modeLabel, statusLabel } from '../lib/format';
 import { spacing, useTheme } from '../lib/theme';
@@ -9,6 +9,7 @@ import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Screen } from '../components/Screen';
+import { PixelPortrait, RetroLogo } from '../components/Pixel';
 
 /** Biblioteca: la pantalla de inicio. */
 export default function Library() {
@@ -65,11 +66,14 @@ export default function Library() {
           </Card>
         ) : null}
 
+        <RetroLogo />
+        <Cast />
+
         {items && items.length === 0 ? <Welcome /> : null}
 
         {items && items.length > 0 ? (
           <View style={{ gap: spacing(3) }}>
-            <AppText variant="title">Tu biblioteca</AppText>
+            <AppText variant="heading" style={{ textAlign: 'center' }}>* * * Tu biblioteca * * *</AppText>
             {items.map((p) => (
               <PodcastRow key={p.id} podcast={p} />
             ))}
@@ -117,31 +121,49 @@ function PodcastRow({ podcast }: { podcast: PodcastSummary }) {
   );
 }
 
-function Welcome() {
-  const theme = useTheme();
-  const steps = [
-    { icon: <FileText color={theme.accent} size={28} strokeWidth={1.5} />, title: 'Sube un PDF de clase', text: 'Apuntes, temas o artículos. Lo leemos página a página.' },
-    { icon: <Sparkles color={theme.accent} size={28} strokeWidth={1.5} />, title: 'Lía y Marco lo convierten en charla', text: 'Una presentadora curiosa y un experto cercano, fieles a tu PDF y en tu idioma.' },
-    { icon: <Headphones color={theme.accent} size={28} strokeWidth={1.5} />, title: 'Escucha en segundos', text: 'Empieza a sonar en cuanto está el primer bloque. Tu primer resumen es gratis.' },
+/** «Protagonizado por...»: los dos presentadores con su retrato pixelado. */
+function Cast() {
+  const cast = [
+    { who: 'LIA' as const, name: 'LÍA', role: 'la presentadora' },
+    { who: 'MARCO' as const, name: 'MARCO', role: 'el experto' },
   ];
   return (
-    <View style={{ gap: spacing(4) }}>
-      <AppText variant="title">Estudia escuchando</AppText>
-      {steps.map((s) => (
-        <Card key={s.title} style={{ flexDirection: 'row', gap: spacing(4), alignItems: 'flex-start' }}>
-          <View importantForAccessibility="no" accessibilityElementsHidden>{s.icon}</View>
-          <View style={{ flex: 1, gap: spacing(1) }}>
-            <AppText variant="label">{s.title}</AppText>
-            <AppText tone="secondary">{s.text}</AppText>
+    <View style={{ gap: spacing(3), alignItems: 'center' }}>
+      <AppText variant="caption" tone="secondary">Protagonizado por...</AppText>
+      <View style={{ flexDirection: 'row', gap: spacing(6), justifyContent: 'center' }}>
+        {cast.map((c) => (
+          <View key={c.who} style={{ alignItems: 'center', gap: spacing(2) }} accessible accessibilityLabel={`${c.name}, ${c.role}`}>
+            <PixelPortrait who={c.who} size={112} />
+            <AppText variant="heading" style={{ fontSize: 11 }}>{c.name}</AppText>
+            <AppText variant="caption" tone="secondary">{c.role}</AppText>
           </View>
-        </Card>
-      ))}
+        ))}
+      </View>
     </View>
+  );
+}
+
+function Welcome() {
+  const steps = [
+    { title: 'Sube un PDF de clase', text: 'Apuntes, temas o artículos. Lo leemos página a página.' },
+    { title: 'Lía y Marco lo convierten en charla', text: 'Fieles a tu PDF y en tu idioma.' },
+    { title: 'Escucha en segundos', text: 'Empieza a sonar en cuanto está el primer bloque.' },
+  ];
+  return (
+    <Card style={{ gap: spacing(3) }}>
+      {steps.map((s, i) => (
+        <View key={s.title} style={{ gap: spacing(1) }}>
+          <AppText variant="label">{`> ${i + 1}. ${s.title}`}</AppText>
+          <AppText tone="secondary">{`  ${s.text}`}</AppText>
+        </View>
+      ))}
+      <AppText tone="secondary">{'_'}</AppText>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   headerButton: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  fill: { height: 6, borderRadius: 3 },
+  track: { height: 8, overflow: 'hidden' },
+  fill: { height: 8 },
 });

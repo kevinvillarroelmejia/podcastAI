@@ -10,7 +10,7 @@ interface Props {
   contentStyle?: ViewStyle;
 }
 
-/** Pantalla base: fondo hueso/carbón, ancho máximo legible y pie fijo al alcance del pulgar. */
+/** Pantalla base: fondo negro, ancho máximo legible y pie fijo al alcance del pulgar. */
 export function Screen({ children, footer, scroll = true, contentStyle }: Props) {
   const theme = useTheme();
   const inner = <View style={[styles.content, contentStyle]}>{children}</View>;
@@ -30,6 +30,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { flexGrow: 1, alignItems: 'center' },
   content: { width: '100%', maxWidth: 640, padding: spacing(4), gap: spacing(4) },
-  footer: { borderTopWidth: StyleSheet.hairlineWidth, alignItems: 'center' },
+  footer: { borderTopWidth: 2, alignItems: 'center' },
   footerInner: { width: '100%', maxWidth: 640, padding: spacing(4) },
 });

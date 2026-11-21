@@ -5,11 +5,12 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-au
 import { Check, Download, Pause, Play, RotateCcw, RotateCw, Share2, Trash2 } from 'lucide-react-native';
 import { api, ApiError, type BlockView, type PodcastDetail } from '../../lib/api';
 import { formatDuration, modeLabel, spokenDuration } from '../../lib/format';
-import { fonts, radius, spacing, useTheme } from '../../lib/theme';
+import { radius, spacing, useTheme } from '../../lib/theme';
 import { AppText } from '../../components/AppText';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import { Screen } from '../../components/Screen';
+import { PixelPortrait } from '../../components/Pixel';
 
 const RATES = [0.75, 1, 1.25, 1.5, 2];
 const POLL_MS = 1500;
@@ -124,6 +125,12 @@ export default function PodcastScreen() {
   const totalMs = readyBlocks.reduce((sum, b) => sum + b.durationMs, 0);
   const positionMs = current === null ? 0 : elapsedBefore + status.currentTime * 1000;
   const currentMs = status.currentTime * 1000;
+
+  const speaking = useMemo(() => {
+    const block = readyBlocks.find((b) => b.index === current);
+    const seg = block?.segments.find((x) => currentMs >= x.startMs && currentMs < x.endMs);
+    return status.playing && seg ? seg.speaker : null;
+  }, [readyBlocks, current, currentMs, status.playing]);
 
   function togglePlay() {
     if (current === null) {
@@ -278,6 +285,16 @@ export default function PodcastScreen() {
 
             {readyBlocks.length > 0 ? (
               <Card style={{ gap: spacing(4), alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', gap: spacing(6) }}>
+                  {(['LIA', 'MARCO'] as const).map((who) => (
+                    <View key={who} style={{ alignItems: 'center', gap: spacing(1) }}>
+                      <PixelPortrait who={who} size={88} dim={speaking !== null && speaking !== who} />
+                      <AppText variant="caption" tone={speaking === who ? 'accent' : 'secondary'}>
+                        {speaking === who ? `> ${who === 'LIA' ? 'LÍA' : 'MARCO'}` : who === 'LIA' ? 'LÍA' : 'MARCO'}
+                      </AppText>
+                    </View>
+                  ))}
+                </View>
                 {current === null ? (
                   <Button label="Escuchar ya" icon={<Play color={theme.onAccent} size={20} fill={theme.onAccent} />} onPress={togglePlay} style={{ alignSelf: 'stretch' }} />
                 ) : (
@@ -287,7 +304,7 @@ export default function PodcastScreen() {
                       {generating ? ' · generando más…' : ''}
                     </AppText>
                     <View
-                      style={[styles.track, { backgroundColor: theme.accentSoft }]}
+                      style={[styles.track, { backgroundColor: theme.background, borderColor: theme.border }]}
                       accessibilityRole="progressbar"
                       accessibilityValue={{ min: 0, max: Math.round(totalMs / 1000), now: Math.round(positionMs / 1000) }}
                     >
@@ -389,8 +406,8 @@ export default function PodcastScreen() {
                         { backgroundColor: active ? theme.accentSoft : 'transparent', borderLeftColor: active ? theme.accent : 'transparent' },
                       ]}
                     >
-                      <AppText variant="caption" tone={s.speaker === 'LIA' ? 'accent' : 'secondary'} style={{ fontFamily: fonts.semibold }}>
-                        {s.speakerName}
+                      <AppText variant="caption" tone={s.speaker === 'LIA' ? 'accent' : 'secondary'}>
+                        {`${s.speakerName.toUpperCase()}>`}
                       </AppText>
                       <AppText>{s.text}</AppText>
                       {s.pages.length > 0 ? (
@@ -418,7 +435,7 @@ function ActionButton({ label, hint, onPress, icon, danger = false }: { label: s
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
-      style={[styles.action, { borderColor: danger ? theme.errorSoft : theme.border, backgroundColor: theme.surface }]}
+      style={[styles.action, { borderColor: danger ? theme.error : theme.accent, backgroundColor: theme.background }]}
     >
       {icon}
       <AppText variant="label" tone={danger ? 'error' : 'primary'}>
@@ -480,11 +497,11 @@ function QualityNote({ detail }: { detail: PodcastDetail }) {
 }
 
 const styles = StyleSheet.create({
-  track: { height: 6, borderRadius: 3, overflow: 'hidden', alignSelf: 'stretch' },
-  fill: { height: 6, borderRadius: 3 },
+  track: { height: 8, overflow: 'hidden', alignSelf: 'stretch', borderWidth: 1 },
+  fill: { height: 6 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: spacing(6) },
-  play: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
-  round: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  play: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   rate: { minWidth: 72, minHeight: 48, borderRadius: radius, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing(3) },
   iconButton: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   chapter: { minHeight: 48, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing(2) },
@@ -493,6 +510,6 @@ const styles = StyleSheet.create({
   action: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing(2), paddingHorizontal: spacing(4), borderRadius: radius, borderWidth: 1 },
   tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: radius, padding: spacing(1), gap: spacing(1) },
   tab: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius, borderWidth: 1 },
-  miniPlay: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
+  miniPlay: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  dot: { width: 12, height: 12, borderWidth: 2 },
 });
