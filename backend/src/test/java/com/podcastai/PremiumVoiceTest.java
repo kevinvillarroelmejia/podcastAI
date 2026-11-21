@@ -34,7 +34,7 @@ import com.podcastai.tts.Mp3;
 import com.podcastai.tts.VoiceAccountException;
 
 /**
- * Las cuentas Premium usan la voz de ElevenLabs; las gratis, la estándar.
+ * Con clave de ElevenLabs, todos los podcasts usan su voz; sin créditos fallan con un mensaje claro.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -57,7 +57,7 @@ class PremiumVoiceTest {
     private ElevenLabsDialogueEngine elevenLabs;
 
     @Test
-    void premiumPodcastsUseElevenLabsAndFreeOnesDoNot() throws Exception {
+    void everyPodcastUsesElevenLabsWhenConfigured() throws Exception {
         when(elevenLabs.isConfigured()).thenReturn(true);
         when(elevenLabs.synthesize(anyList(), anyList(), anyString())).thenAnswer(inv -> {
             List<String> texts = inv.getArgument(0);
@@ -74,7 +74,7 @@ class PremiumVoiceTest {
                 "La memoria RAM es volatil y pierde su contenido sin corriente.\nEl disco duro conserva los datos."));
 
         String free = UUID.randomUUID().toString();
-        mvc.perform(get("/api/me").header("X-Device-Id", free)).andExpect(jsonPath("$.voiceEngine").value("mock"));
+        mvc.perform(get("/api/me").header("X-Device-Id", free)).andExpect(jsonPath("$.voiceEngine").value("elevenlabs"));
 
         String premium = UUID.randomUUID().toString();
         mvc.perform(post("/api/webhooks/revenuecat").contentType(MediaType.APPLICATION_JSON)
@@ -101,10 +101,10 @@ class PremiumVoiceTest {
     }
 
     @Test
-    void premiumFallsBackToStandardVoiceWhenElevenLabsNeedsPayment() throws Exception {
+    void podcastFailsClearlyWhenElevenLabsNeedsPayment() throws Exception {
         when(elevenLabs.isConfigured()).thenReturn(true);
         when(elevenLabs.synthesize(anyList(), anyList(), anyString()))
-                .thenThrow(new VoiceAccountException("ElevenLabs pide un plan de pago o más créditos para esta voz."));
+                .thenThrow(new VoiceAccountException("ElevenLabs pide un plan de pago o más créditos."));
         MockMultipartFile pdf = new MockMultipartFile("file", "tema.pdf", "application/pdf", TestPdfs.withPages(
                 "Los hilos virtuales son ligeros y los gestiona la JVM.\nPermiten miles de tareas a la vez.",
                 "Un semaforo limita cuantas tareas acceden a un recurso.\nSe libera al terminar."));
@@ -126,6 +126,7 @@ class PremiumVoiceTest {
             finished = "READY".equals(state) || "FAILED".equals(state);
             Thread.sleep(finished ? 0 : 100);
         }
-        assertThat(detail.path("podcast").path("status").asText()).isEqualTo("READY");
+        assertThat(detail.path("podcast").path("status").asText()).isEqualTo("FAILED");
+        assertThat(detail.toString()).contains("ElevenLabs pide un plan de pago");
     }
 }

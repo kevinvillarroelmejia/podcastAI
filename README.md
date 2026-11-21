@@ -7,8 +7,7 @@ empieza a sonar en cuanto está el primero.
 - **Backend:** Spring Boot 3.5 + Java 21 (hilos virtuales), JPA, Apache PDFBox, SDK oficial de Anthropic.
 - **App:** Expo (React Native + TypeScript), funciona en Android, iOS y navegador.
 - **IA:** Claude Haiku 5.5 para el mapa del contenido y la verificación, Claude Sonnet 5.5 para el guion.
-- **Voz:** OpenAI `gpt-4o-mini-tts` en el plan gratis (Lía con la voz `coral`, Marco con `ash`) y
-  **ElevenLabs v3 en modo diálogo** para Premium: la conversación del bloque se interpreta de una vez, con risas,
+- **Voz:** con `ELEVENLABS_API_KEY`, todos los podcasts (Resumen y A fondo) usan **ElevenLabs v3 en modo diálogo**: la conversación del bloque se interpreta de una vez, con risas,
   dudas e interrupciones (`[laughs]`, `[jumping in]`…) que Claude escribe en el guion. Las marcas no se ven en la
   transcripción.
 
@@ -88,7 +87,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.50:8080
 | `MAP_MODEL`, `SCRIPT_MODEL`, `VERIFY_MODEL` | Modelos de Claude | Haiku 5.5 / Sonnet 5.5 / Haiku 5.5 |
 | `TTS_MODEL`, `TTS_HOST_VOICE`, `TTS_EXPERT_VOICE` | Voz estándar | `gpt-4o-mini-tts`, `coral`, `ash` |
 | `TTS_CONCURRENCY` | Voces a la vez por podcast (voz estándar) | `2` |
-| `ELEVENLABS_API_KEY` | Voz Premium con ElevenLabs | vacía → Premium usa la voz estándar |
+| `ELEVENLABS_API_KEY` | Voz de ElevenLabs para todos los podcasts | vacía → voz de OpenAI |
 | `ELEVENLABS_HOST_VOICE`, `ELEVENLABS_EXPERT_VOICE`, `ELEVENLABS_MODEL` | Voces de Lía y Marco en ElevenLabs | Rachel, Adam, `eleven_v3` |
 | `EXPO_PUBLIC_API_URL` (app) | Dirección del backend | `http://<host>:8080` |
 

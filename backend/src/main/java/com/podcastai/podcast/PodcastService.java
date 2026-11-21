@@ -170,10 +170,9 @@ public class PodcastService {
         });
     }
 
-    /** Premium con clave de ElevenLabs → voz expresiva; si no, la voz estándar. */
+    /** Con clave de ElevenLabs, todos los podcasts (Resumen y A fondo) usan su voz; si no, la voz estándar. */
     public String voiceFor(Account account) {
-        boolean premiumVoice = account.getPlan() == com.podcastai.account.Plan.PREMIUM && elevenLabs.isConfigured();
-        return premiumVoice ? "elevenlabs" : tts.name();
+        return elevenLabs.isConfigured() ? "elevenlabs" : tts.name();
     }
 
     private Podcast owned(String accountId, UUID podcastId) {

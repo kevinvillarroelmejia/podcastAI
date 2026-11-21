@@ -173,7 +173,7 @@ public class ElevenLabsDialogueEngine {
         String text = body == null ? "" : body;
         TtsException error = new TtsException("La voz de ElevenLabs ha fallado (HTTP " + status + ").");
         if (status == 402) {
-            error = new VoiceAccountException("ElevenLabs pide un plan de pago o más créditos para esta voz.");
+            error = new VoiceAccountException("ElevenLabs pide un plan de pago o más créditos. Revisa tu suscripción en elevenlabs.io.");
         } else if (text.contains("quota") || text.contains("credits")) {
             error = new VoiceAccountException("Tu cuenta de ElevenLabs no tiene créditos suficientes.");
         } else if (text.contains("voice_not_found")) {

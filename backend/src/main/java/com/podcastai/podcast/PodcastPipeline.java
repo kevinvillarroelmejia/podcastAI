@@ -41,7 +41,6 @@ import com.podcastai.tts.ElevenLabsDialogueEngine;
 import com.podcastai.tts.Mp3;
 import com.podcastai.tts.TtsEngine;
 import com.podcastai.tts.TtsException;
-import com.podcastai.tts.VoiceAccountException;
 
 /**
  * El pipeline del podcast: mapa → por cada bloque (guion → verificación → voz) → audio listo.
@@ -204,24 +203,14 @@ public class PodcastPipeline {
     }
 
     /**
-     * Voz Premium si toca. Si la cuenta de ElevenLabs no puede (sin créditos, plan de pago, clave inválida),
-     * el podcast sigue con la voz estándar en lugar de fallar.
+     * Voz de ElevenLabs si el podcast la usa; si no, la estándar. No se cambia de voz a mitad de podcast:
+     * si ElevenLabs falla (sin créditos, plan de pago), el podcast se detiene con un mensaje claro.
      */
     private BlockAudio synthesizeBlock(Podcast podcast, List<Turn> turns, Semaphore permits) {
-        BlockAudio result = null;
-        if (podcast.usesExpressiveVoice()) {
-            try {
-                result = premiumVoice.synthesize(turns.stream().map(Turn::text).toList(),
-                        turns.stream().map(t -> Speaker.parse(t.speaker())).toList(), podcast.getLanguage());
-            } catch (VoiceAccountException e) {
-                log.warn("Podcast {}: {} Se usa la voz estándar.", podcast.getId(), e.getMessage());
-                podcast.setVoice(tts.name());
-            }
-        }
-        if (result == null) {
-            result = synthesizeStandard(turns, podcast.getLanguage(), permits);
-        }
-        return result;
+        return podcast.usesExpressiveVoice()
+                ? premiumVoice.synthesize(turns.stream().map(Turn::text).toList(),
+                        turns.stream().map(t -> Speaker.parse(t.speaker())).toList(), podcast.getLanguage())
+                : synthesizeStandard(turns, podcast.getLanguage(), permits);
     }
 
     /** Voz estándar: una petición por intervención, en paralelo, y se miden para sincronizar la transcripción. */
