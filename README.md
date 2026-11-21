@@ -7,7 +7,10 @@ empieza a sonar en cuanto está el primero.
 - **Backend:** Spring Boot 3.5 + Java 21 (hilos virtuales), JPA, Apache PDFBox, SDK oficial de Anthropic.
 - **App:** Expo (React Native + TypeScript), funciona en Android, iOS y navegador.
 - **IA:** Claude Haiku 5.5 para el mapa del contenido y la verificación, Claude Sonnet 5.5 para el guion.
-- **Voz:** OpenAI `gpt-4o-mini-tts` (Lía con la voz `coral`, Marco con `ash`).
+- **Voz:** OpenAI `gpt-4o-mini-tts` en el plan gratis (Lía con la voz `coral`, Marco con `ash`) y
+  **ElevenLabs v3 en modo diálogo** para Premium: la conversación del bloque se interpreta de una vez, con risas,
+  dudas e interrupciones (`[laughs]`, `[jumping in]`…) que Claude escribe en el guion. Las marcas no se ven en la
+  transcripción.
 
 ## Cómo funciona
 
@@ -83,19 +86,23 @@ EXPO_PUBLIC_API_URL=http://192.168.1.50:8080
 | `STORAGE_DIR` | Carpeta de los MP3 | `./data/audio` |
 | `PUBLIC_BASE_URL` | URL pública del backend, para las URLs de audio | la de la petición |
 | `MAP_MODEL`, `SCRIPT_MODEL`, `VERIFY_MODEL` | Modelos de Claude | Haiku 5.5 / Sonnet 5.5 / Haiku 5.5 |
-| `TTS_MODEL`, `TTS_HOST_VOICE`, `TTS_EXPERT_VOICE` | Voz | `gpt-4o-mini-tts`, `coral`, `ash` |
+| `TTS_MODEL`, `TTS_HOST_VOICE`, `TTS_EXPERT_VOICE` | Voz estándar | `gpt-4o-mini-tts`, `coral`, `ash` |
+| `TTS_CONCURRENCY` | Voces a la vez por podcast (voz estándar) | `2` |
+| `ELEVENLABS_API_KEY` | Voz Premium con ElevenLabs | vacía → Premium usa la voz estándar |
+| `ELEVENLABS_HOST_VOICE`, `ELEVENLABS_EXPERT_VOICE`, `ELEVENLABS_MODEL` | Voces de Lía y Marco en ElevenLabs | Rachel, Adam, `eleven_v3` |
 | `EXPO_PUBLIC_API_URL` (app) | Dirección del backend | `http://<host>:8080` |
 
 ## Planes y límites
 
 - **Gratis:** un resumen (hasta 8 minutos) por cuenta. Si la generación falla sin producir audio, se devuelve.
-- **Premium (10 €/mes):** 120 minutos al mes y el modo **A fondo** (12 a 20 minutos).
+- **Premium (10 €/mes):** 120 minutos al mes, el modo **A fondo** (12 a 20 minutos) y la voz expresiva de ElevenLabs.
 - El plan **solo** cambia por el webhook de RevenueCat (`POST /api/webhooks/revenuecat` con
   `Authorization: Bearer <REVENUECAT_WEBHOOK_SECRET>`), nunca por lo que diga la app.
 - Los cupos se reservan con `UPDATE` atómicos, así dos peticiones a la vez no se saltan el límite.
 - Máximo 6 podcasts por hora por cuenta (y 18 por IP).
 
-Para probar Premium en local:
+Para probar Premium en local, lo más fácil es poner `DEV_PREMIUM=true` en el `.env` (todas las cuentas pasan a
+Premium; nunca lo actives en producción). O simular la compra con el webhook:
 
 ```bash
 curl -X POST localhost:8080/api/webhooks/revenuecat \
@@ -163,4 +170,4 @@ app/       Expo Router
 - Audio en Supabase Storage (cifrado, región UE) en lugar del disco local.
 - Compra dentro de la app con RevenueCat (el backend ya tiene el webhook).
 - Avisos por WebSocket en lugar de consultar el estado cada 1,5 s, y cola de trabajos con Redis.
-- Modo Repaso tipo examen, voz premium con ElevenLabs, cambiar nombres y voces, OCR para PDFs escaneados.
+- Modo Repaso tipo examen, cambiar nombres y voces desde la app, OCR para PDFs escaneados.

@@ -60,6 +60,9 @@ export default function AccountScreen() {
                 <View style={{ height: 8, backgroundColor: theme.accent, width: `${(used / account.monthlyMinutes) * 100}%` }} />
               </View>
               <AppText variant="caption" tone="secondary">
+                Voz: {account.voiceEngine === 'elevenlabs' ? 'ElevenLabs, expresiva' : 'estándar'}.
+              </AppText>
+              <AppText variant="caption" tone="secondary">
                 Los minutos se renuevan cada mes desde el {new Date(account.periodStart).toLocaleDateString()}.
               </AppText>
             </>
@@ -69,7 +72,7 @@ export default function AccountScreen() {
                 {account.freePodcastsLeft > 0 ? 'Te queda 1 resumen gratis.' : 'Ya has usado tu resumen gratis.'}
               </AppText>
               <AppText tone="secondary">
-                Premium: 10 €/mes con 120 minutos al mes (unos 15 resúmenes) y el modo A fondo.
+                Premium: 10 €/mes con 120 minutos al mes, el modo A fondo y voces mucho más humanas.
               </AppText>
               <Button label="Hazte Premium (pronto en las tiendas)" disabled onPress={() => undefined} />
             </>

@@ -28,4 +28,15 @@ public class TtsConfig {
         }
         return engine;
     }
+
+    @Bean
+    public ElevenLabsDialogueEngine elevenLabsDialogueEngine(AppProperties props, ObjectMapper mapper) {
+        ElevenLabsDialogueEngine engine = new ElevenLabsDialogueEngine(props.elevenlabs(), mapper);
+        if (engine.isConfigured()) {
+            log.info("Voz Premium con ElevenLabs {} (modo diálogo)", props.elevenlabs().model());
+        } else {
+            log.info("Sin ELEVENLABS_API_KEY: las cuentas Premium también usan la voz estándar.");
+        }
+        return engine;
+    }
 }

@@ -49,6 +49,10 @@ public class Podcast {
     private int rewrittenTurns;
     private boolean usedFreeQuota;
 
+    /** Voz con la que se genera: "elevenlabs" (Premium) o la estándar ("openai" o "mock"). */
+    @Column(length = 16)
+    private String voice;
+
     @Column(length = 300)
     private String errorMessage;
 
@@ -167,6 +171,18 @@ public class Podcast {
 
     public void setUsedFreeQuota(boolean usedFreeQuota) {
         this.usedFreeQuota = usedFreeQuota;
+    }
+
+    public String getVoice() {
+        return voice;
+    }
+
+    public void setVoice(String voice) {
+        this.voice = voice;
+    }
+
+    public boolean usesExpressiveVoice() {
+        return "elevenlabs".equals(voice);
     }
 
     public String getErrorMessage() {

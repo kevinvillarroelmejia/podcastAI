@@ -22,7 +22,6 @@ import com.podcastai.account.Plan;
 import com.podcastai.ai.ScriptEngine;
 import com.podcastai.config.AppProperties;
 import com.podcastai.podcast.PodcastService;
-import com.podcastai.tts.TtsEngine;
 import com.podcastai.web.Dtos.AccountView;
 
 @RestController
@@ -37,22 +36,20 @@ public class AccountController {
     private final PodcastService podcasts;
     private final AppProperties props;
     private final ScriptEngine scriptEngine;
-    private final TtsEngine ttsEngine;
 
     public AccountController(AccountService accounts, PodcastService podcasts, AppProperties props,
-                             ScriptEngine scriptEngine, TtsEngine ttsEngine) {
+                             ScriptEngine scriptEngine) {
         this.accounts = accounts;
         this.podcasts = podcasts;
         this.props = props;
         this.scriptEngine = scriptEngine;
-        this.ttsEngine = ttsEngine;
     }
 
     @GetMapping("/api/me")
     public AccountView me(@RequestHeader(PodcastController.DEVICE_HEADER) String deviceId) {
         Account account = accounts.getOrCreate(deviceId);
         return AccountView.of(account, accounts.monthlyLimit(account), props.limits().freePodcasts(),
-                scriptEngine.name(), ttsEngine.name());
+                scriptEngine.name(), podcasts.voiceFor(account));
     }
 
     /** Borra la cuenta y todos sus podcasts y audios. */

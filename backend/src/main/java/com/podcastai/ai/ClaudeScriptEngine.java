@@ -68,6 +68,9 @@ public class ClaudeScriptEngine implements ScriptEngine {
         if (!r.previousTail().isEmpty()) {
             user.append("\nFinal del bloque anterior (continúa desde aquí):\n").append(formatTurns(r.previousTail()));
         }
+        if (r.expressive()) {
+            user.append("\n").append(Prompts.EXPRESSIVE_RULES);
+        }
         user.append("\n\n").append(Prompts.sources(r.sourcePages()));
         return ask(config.scriptModel(), Prompts.SCRIPT_SYSTEM, user.toString(), BlockScript.class, 16000L,
                 OutputConfig.Effort.MEDIUM);

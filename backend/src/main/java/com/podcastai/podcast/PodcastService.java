@@ -43,10 +43,15 @@ public class PodcastService {
     private final AudioStorage storage;
     private final AudioSigner signer;
     private final ObjectMapper mapper;
+    private final com.podcastai.tts.TtsEngine tts;
+    private final com.podcastai.tts.ElevenLabsDialogueEngine elevenLabs;
 
     public PodcastService(PdfTextExtractor extractor, AccountService accounts, PodcastRepository podcasts,
                           PodcastBlockRepository blocks, SegmentRepository segments, DocumentTextRepository documents,
-                          PodcastPipeline pipeline, AudioStorage storage, AudioSigner signer, ObjectMapper mapper) {
+                          PodcastPipeline pipeline, AudioStorage storage, AudioSigner signer, ObjectMapper mapper,
+                          com.podcastai.tts.TtsEngine tts, com.podcastai.tts.ElevenLabsDialogueEngine elevenLabs) {
+        this.tts = tts;
+        this.elevenLabs = elevenLabs;
         this.extractor = extractor;
         this.accounts = accounts;
         this.podcasts = podcasts;
@@ -75,6 +80,7 @@ public class PodcastService {
         boolean usedFree = accounts.reserve(account, mode);
         Podcast podcast = new Podcast(account.getId(), pdf.sha256(), pdf.title(), mode, language, pdf.pages().size());
         podcast.setUsedFreeQuota(usedFree);
+        podcast.setVoice(voiceFor(account));
         podcasts.save(podcast);
         pipeline.submit(podcast.getId());
         return PodcastSummary.of(podcast);
@@ -162,6 +168,12 @@ public class PodcastService {
             podcasts.deleteById(podcastId);
             storage.deletePodcast(podcastId);
         });
+    }
+
+    /** Premium con clave de ElevenLabs → voz expresiva; si no, la voz estándar. */
+    public String voiceFor(Account account) {
+        boolean premiumVoice = account.getPlan() == com.podcastai.account.Plan.PREMIUM && elevenLabs.isConfigured();
+        return premiumVoice ? "elevenlabs" : tts.name();
     }
 
     private Podcast owned(String accountId, UUID podcastId) {

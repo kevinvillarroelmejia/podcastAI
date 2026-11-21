@@ -69,6 +69,15 @@ public final class Prompts {
             Devuelve un veredicto por cada intervención. correctedText es cadena vacía salvo en las parciales.
             """;
 
+    /** Solo con la voz de ElevenLabs v3: marcas de interpretación entre corchetes, en inglés. */
+    public static final String EXPRESSIVE_RULES = """
+            Voz expresiva: esta conversación la interpretará una voz que entiende marcas entre corchetes, en inglés.
+            Úsalas con naturalidad y moderación (como mucho una cada dos intervenciones), al principio o en mitad de la frase:
+            [laughs], [chuckles], [sighs], [excited], [curious], [surprised], [thoughtful], [jumping in], [whispers].
+            Para una interrupción, corta la frase con un guion ("y entonces el-") y empieza la siguiente con [jumping in].
+            Usa puntos suspensivos para dudas. Las marcas nunca cuentan como contenido: no añaden datos.
+            """;
+
     private Prompts() {
     }
 

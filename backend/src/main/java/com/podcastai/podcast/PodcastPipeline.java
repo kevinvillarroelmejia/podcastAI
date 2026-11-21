@@ -35,6 +35,9 @@ import com.podcastai.ai.ScriptModels.Verdict;
 import com.podcastai.ai.Speaker;
 import com.podcastai.config.AppProperties;
 import com.podcastai.pdf.PageText;
+import com.podcastai.tts.AudioTags;
+import com.podcastai.tts.BlockAudio;
+import com.podcastai.tts.ElevenLabsDialogueEngine;
 import com.podcastai.tts.Mp3;
 import com.podcastai.tts.TtsEngine;
 import com.podcastai.tts.TtsException;
@@ -57,6 +60,7 @@ public class PodcastPipeline {
     private final MapCacheRepository mapCache;
     private final ScriptEngine engine;
     private final TtsEngine tts;
+    private final ElevenLabsDialogueEngine premiumVoice;
     private final AudioStorage storage;
     private final AccountService accounts;
     private final ObjectMapper mapper;
@@ -66,7 +70,7 @@ public class PodcastPipeline {
 
     public PodcastPipeline(PodcastRepository podcasts, PodcastBlockRepository blocks, SegmentRepository segments,
                            DocumentTextRepository documents, MapCacheRepository mapCache, ScriptEngine engine,
-                           TtsEngine tts, AudioStorage storage, AccountService accounts, ObjectMapper mapper,
+                           TtsEngine tts, ElevenLabsDialogueEngine premiumVoice, AudioStorage storage, AccountService accounts, ObjectMapper mapper,
                            ExecutorService pipelineExecutor, AppProperties props) {
         this.podcasts = podcasts;
         this.blocks = blocks;
@@ -75,6 +79,7 @@ public class PodcastPipeline {
         this.mapCache = mapCache;
         this.engine = engine;
         this.tts = tts;
+        this.premiumVoice = premiumVoice;
         this.storage = storage;
         this.accounts = accounts;
         this.mapper = mapper;
@@ -150,11 +155,14 @@ public class PodcastPipeline {
         PlannedBlock planned = plan.get(index);
         List<PageText> source = pagesFor(planned, pages);
         BlockRequest request = new BlockRequest(map, planned, index, plan.size(), podcast.getMode(),
-                podcast.getLanguage(), source, tail);
+                podcast.getLanguage(), source, tail, podcast.usesExpressiveVoice());
         List<Turn> written = clean(engine.writeBlock(request).turns());
+        List<Turn> forReview = written.stream()
+                .map(t -> new Turn(t.speaker(), AudioTags.strip(t.text()), t.pages()))
+                .toList();
         VerificationResult verification = written.isEmpty()
                 ? new VerificationResult(List.of())
-                : engine.verify(written, source, podcast.getLanguage());
+                : engine.verify(forReview, source, podcast.getLanguage());
         Verified verified = applyVerification(written, verification);
 
         PodcastBlock block = blocks.findByPodcastIdAndBlockIndex(podcast.getId(), index).orElseThrow();
@@ -163,17 +171,19 @@ public class PodcastPipeline {
             block.setStatus(BlockStatus.SKIPPED);
             blocks.save(block);
         } else {
-            List<byte[]> audios = synthesizeAll(verified.turns(), podcast.getLanguage(), ttsPermits);
+            BlockAudio blockAudio = podcast.usesExpressiveVoice()
+                    ? premiumVoice.synthesize(verified.turns().stream().map(Turn::text).toList(),
+                            verified.turns().stream().map(t -> Speaker.parse(t.speaker())).toList(), podcast.getLanguage())
+                    : synthesizeStandard(verified.turns(), podcast.getLanguage(), ttsPermits);
             List<Segment> blockSegments = new ArrayList<>();
-            long cursor = 0;
-            for (int i = 0; i < audios.size(); i++) {
+            for (int i = 0; i < verified.turns().size(); i++) {
                 Turn turn = verified.turns().get(i);
-                long duration = Mp3.durationMs(audios.get(i));
-                blockSegments.add(new Segment(podcast.getId(), index, i, Speaker.parse(turn.speaker()), turn.text(),
-                        joinPages(turn.pages()), cursor, cursor + duration));
-                cursor += duration;
+                blockSegments.add(new Segment(podcast.getId(), index, i, Speaker.parse(turn.speaker()),
+                        AudioTags.strip(turn.text()), joinPages(turn.pages()), blockAudio.startMs().get(i),
+                        blockAudio.endMs().get(i)));
             }
-            byte[] audio = Mp3.concat(audios);
+            byte[] audio = blockAudio.audio();
+            long cursor = blockAudio.durationMs();
             block.setDurationMs(cursor);
             block.setStatus(BlockStatus.READY);
             saveReadyBlock(podcast.getId(), block, audio, blockSegments);
@@ -193,6 +203,20 @@ public class PodcastPipeline {
         podcast.setRewrittenTurns(podcast.getRewrittenTurns() + verified.rewritten());
         saveProgress(podcast);
         return newTail;
+    }
+
+    /** Voz estándar: una petición por intervención, en paralelo, y se miden para sincronizar la transcripción. */
+    private BlockAudio synthesizeStandard(List<Turn> turns, String language, Semaphore permits) {
+        List<byte[]> audios = synthesizeAll(turns, language, permits);
+        List<Long> starts = new ArrayList<>();
+        List<Long> ends = new ArrayList<>();
+        long cursor = 0;
+        for (byte[] piece : audios) {
+            starts.add(cursor);
+            cursor += Mp3.durationMs(piece);
+            ends.add(cursor);
+        }
+        return new BlockAudio(Mp3.concat(audios), starts, ends);
     }
 
     /** Pide la voz de todas las intervenciones en paralelo (hilos virtuales) y las devuelve en orden. */
@@ -219,7 +243,7 @@ public class PodcastPipeline {
     private byte[] synthesizeOne(Turn turn, String language, Semaphore permits) throws InterruptedException {
         permits.acquire();
         try {
-            return tts.synthesize(turn.text(), Speaker.parse(turn.speaker()), language);
+            return tts.synthesize(AudioTags.strip(turn.text()), Speaker.parse(turn.speaker()), language);
         } finally {
             permits.release();
         }

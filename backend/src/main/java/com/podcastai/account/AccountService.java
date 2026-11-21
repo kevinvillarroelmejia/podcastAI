@@ -49,7 +49,12 @@ public class AccountService {
             }
         }
         accounts.resetPeriodIfDue(id, today, today.minusMonths(1));
-        return accounts.findById(id).orElseThrow();
+        Account account = accounts.findById(id).orElseThrow();
+        if (props.devPremium() && account.getPlan() != Plan.PREMIUM) {
+            account.setPlan(Plan.PREMIUM);
+            account = accounts.save(account);
+        }
+        return account;
     }
 
     /**

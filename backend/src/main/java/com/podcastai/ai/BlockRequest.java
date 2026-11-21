@@ -18,7 +18,8 @@ public record BlockRequest(
         PodcastMode mode,
         String language,
         List<PageText> sourcePages,
-        List<Turn> previousTail) {
+        List<Turn> previousTail,
+        boolean expressive) {
 
     public boolean isFirst() {
         return index == 0;
