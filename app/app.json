@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "podcastAI",
+    "slug": "podcastai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.podcastai.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F1EC",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.podcastai.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "name": "podcastAI",
+      "backgroundColor": "#F4F1EC",
+      "themeColor": "#3F6B5B"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "scheme": "podcastai",
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

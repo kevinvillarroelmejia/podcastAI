@@ -1,0 +1,23 @@
+# Backend
+backend/target/
+backend/data/
+*.log
+
+# App
+app/node_modules/
+app/.expo/
+app/dist/
+app/web-build/
+app/ios/
+app/android/
+
+# Secretos
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+.idea/
+.vscode/
+*.iml

@@ -1,0 +1,61 @@
+# Configuración de podcastAI. Todo lo sensible llega por variables de entorno (ver .env.example).
+spring:
+  application:
+    name: podcastai
+  threads:
+    virtual:
+      enabled: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:file:./data/podcastai;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE}
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: ${PORT:8080}
+  error:
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    com.podcastai: INFO
+
+podcastai:
+  public-base-url: ${PUBLIC_BASE_URL:}
+  storage-dir: ${STORAGE_DIR:./data/audio}
+  signing-secret: ${SIGNING_SECRET:}
+  cors-origins: ${CORS_ORIGINS:*}
+  revenuecat-webhook-secret: ${REVENUECAT_WEBHOOK_SECRET:}
+  retention-days: 30
+  ai:
+    provider: ${AI_PROVIDER:auto}
+    anthropic-api-key: ${ANTHROPIC_API_KEY:}
+    map-model: ${MAP_MODEL:claude-haiku-5-5}
+    script-model: ${SCRIPT_MODEL:claude-sonnet-5-5}
+    verify-model: ${VERIFY_MODEL:claude-haiku-5-5}
+  tts:
+    provider: ${TTS_PROVIDER:auto}
+    openai-api-key: ${OPENAI_API_KEY:}
+    model: ${TTS_MODEL:gpt-4o-mini-tts}
+    host-voice: ${TTS_HOST_VOICE:coral}
+    expert-voice: ${TTS_EXPERT_VOICE:ash}
+    concurrency: 4
+  limits:
+    max-pdf-pages: 100
+    max-source-chars: 400000
+    free-podcasts: 1
+    monthly-minutes-premium: 120
+    uploads-per-hour: 6

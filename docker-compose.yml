@@ -1,0 +1,28 @@
+# Arranca el backend con PostgreSQL local. Las claves se leen de .env.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: podcastai
+      POSTGRES_USER: podcastai
+      POSTGRES_PASSWORD: podcastai
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/podcastai
+      DATABASE_USER: podcastai
+      DATABASE_PASSWORD: podcastai
+    ports:
+      - "8080:8080"
+    volumes:
+      - audio-data:/app/data
+    depends_on:
+      - db
+
+volumes:
+  db-data:
+  audio-data:
