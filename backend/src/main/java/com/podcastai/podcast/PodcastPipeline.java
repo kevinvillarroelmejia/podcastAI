@@ -62,6 +62,7 @@ public class PodcastPipeline {
     private final ObjectMapper mapper;
     private final ExecutorService executor;
     private final int ttsConcurrency;
+    private final Set<UUID> cancelled = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public PodcastPipeline(PodcastRepository podcasts, PodcastBlockRepository blocks, SegmentRepository segments,
                            DocumentTextRepository documents, MapCacheRepository mapCache, ScriptEngine engine,
@@ -129,9 +130,7 @@ public class PodcastPipeline {
         if (map.title() != null && !map.title().isBlank()) {
             podcast.setTitle(truncate(map.title().strip(), 200));
         }
-        for (int i = 0; i < plan.size(); i++) {
-            blocks.save(new PodcastBlock(podcast.getId(), i, truncate(plan.get(i).title(), 200)));
-        }
+        createBlocks(podcast.getId(), plan);
         podcast.setTotalBlocks(plan.size());
         podcast.setStatus(PodcastStatus.GENERATING);
         saveProgress(podcast);
@@ -175,12 +174,9 @@ public class PodcastPipeline {
                 cursor += duration;
             }
             byte[] audio = Mp3.concat(audios);
-            ensureNotDeleted(podcast.getId());
-            block.setAudioPath(storage.save(podcast.getId(), index, audio));
             block.setDurationMs(cursor);
             block.setStatus(BlockStatus.READY);
-            segments.saveAll(blockSegments);
-            blocks.save(block);
+            saveReadyBlock(podcast.getId(), block, audio, blockSegments);
 
             podcast.setReadyBlocks(podcast.getReadyBlocks() + 1);
             podcast.setDurationMs(podcast.getDurationMs() + cursor);
@@ -311,8 +307,31 @@ public class PodcastPipeline {
     record Verified(List<Turn> turns, int removed, int rewritten) {
     }
 
-    private void fail(Podcast podcast, String message) {
-        if (podcasts.existsById(podcast.getId())) {
+    /**
+     * Borra un podcast sin carreras con el pipeline: lo marca como cancelado y borra bajo el mismo cerrojo
+     * que usan los guardados, así un bloque que termina justo después no lo vuelve a crear.
+     */
+    public synchronized void deleteSafely(UUID podcastId, Runnable deletion) {
+        cancelled.add(podcastId);
+        deletion.run();
+    }
+
+    private synchronized void createBlocks(UUID podcastId, List<PlannedBlock> plan) {
+        ensureNotDeleted(podcastId);
+        for (int i = 0; i < plan.size(); i++) {
+            blocks.save(new PodcastBlock(podcastId, i, truncate(plan.get(i).title(), 200)));
+        }
+    }
+
+    private synchronized void saveReadyBlock(UUID podcastId, PodcastBlock block, byte[] audio, List<Segment> blockSegments) {
+        ensureNotDeleted(podcastId);
+        block.setAudioPath(storage.save(podcastId, block.getBlockIndex(), audio));
+        segments.saveAll(blockSegments);
+        blocks.save(block);
+    }
+
+    private synchronized void fail(Podcast podcast, String message) {
+        if (!cancelled.contains(podcast.getId()) && podcasts.existsById(podcast.getId())) {
             podcast.setStatus(PodcastStatus.FAILED);
             podcast.setErrorMessage(truncate(message, 300));
             podcast.setFinishedAt(Instant.now());
@@ -324,13 +343,13 @@ public class PodcastPipeline {
         }
     }
 
-    private void saveProgress(Podcast podcast) {
+    private synchronized void saveProgress(Podcast podcast) {
         ensureNotDeleted(podcast.getId());
         podcasts.save(podcast);
     }
 
     private void ensureNotDeleted(UUID podcastId) {
-        if (!podcasts.existsById(podcastId)) {
+        if (cancelled.contains(podcastId) || !podcasts.existsById(podcastId)) {
             throw new PodcastDeletedException();
         }
     }

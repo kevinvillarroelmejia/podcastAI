@@ -30,6 +30,9 @@ import com.podcastai.web.Dtos.SegmentView;
 @Service
 public class PodcastService {
 
+    /** Índice reservado para firmar la descarga del podcast completo. */
+    private static final int FULL_AUDIO = -1;
+
     private final PdfTextExtractor extractor;
     private final AccountService accounts;
     private final PodcastRepository podcasts;
@@ -92,7 +95,11 @@ public class PodcastService {
         List<BlockView> blockViews = blocks.findByPodcastIdOrderByBlockIndex(podcastId).stream()
                 .map(b -> BlockView.of(b, audioUrl(baseUrl, b), segmentsByBlock.getOrDefault(b.getBlockIndex(), List.of())))
                 .toList();
-        return PodcastDetail.of(podcast, blockViews);
+        boolean anyReady = blockViews.stream().anyMatch(b -> b.audioUrl() != null);
+        String downloadUrl = anyReady
+                ? baseUrl + "/api/audio/" + podcastId + "/completo?" + signer.signedQuery(podcastId, FULL_AUDIO)
+                : null;
+        return PodcastDetail.of(podcast, blockViews, downloadUrl);
     }
 
     public void delete(String accountId, UUID podcastId) {
@@ -107,6 +114,37 @@ public class PodcastService {
         accounts.delete(id);
     }
 
+    /** El podcast entero en un solo MP3 (los bloques listos, en orden), para descargarlo. */
+    public DownloadedAudio fullAudio(UUID podcastId, long expires, String sig) {
+        if (!signer.isValid(podcastId, FULL_AUDIO, expires, sig)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Enlace de descarga caducado.");
+        }
+        Podcast podcast = podcasts.findById(podcastId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Podcast no encontrado."));
+        List<byte[]> parts = new java.util.ArrayList<>();
+        for (PodcastBlock block : blocks.findByPodcastIdOrderByBlockIndex(podcastId)) {
+            if (block.getStatus() == BlockStatus.READY && block.getAudioPath() != null) {
+                parts.add(readFile(storage.resolve(block.getAudioPath())));
+            }
+        }
+        if (parts.isEmpty()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Todavía no hay audio para descargar.");
+        }
+        String safeName = podcast.getTitle().replaceAll("[\\\\/:*?\"<>|]+", " ").strip();
+        return new DownloadedAudio((safeName.isEmpty() ? "podcast" : safeName) + ".mp3", com.podcastai.tts.Mp3.concat(parts));
+    }
+
+    public record DownloadedAudio(String fileName, byte[] data) {
+    }
+
+    private static byte[] readFile(java.nio.file.Path file) {
+        try {
+            return java.nio.file.Files.readAllBytes(file);
+        } catch (IOException e) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Audio no disponible.");
+        }
+    }
+
     public java.nio.file.Path audioFile(UUID podcastId, int blockIndex, long expires, String sig) {
         if (!signer.isValid(podcastId, blockIndex, expires, sig)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Enlace de audio caducado.");
@@ -118,10 +156,12 @@ public class PodcastService {
     }
 
     private void deleteInternal(UUID podcastId) {
-        segments.deleteByPodcastId(podcastId);
-        blocks.deleteByPodcastId(podcastId);
-        podcasts.deleteById(podcastId);
-        storage.deletePodcast(podcastId);
+        pipeline.deleteSafely(podcastId, () -> {
+            segments.deleteByPodcastId(podcastId);
+            blocks.deleteByPodcastId(podcastId);
+            podcasts.deleteById(podcastId);
+            storage.deletePodcast(podcastId);
+        });
     }
 
     private Podcast owned(String accountId, UUID podcastId) {

@@ -50,13 +50,14 @@ public final class Dtos {
     public record Quality(int keptTurns, int removedTurns, int rewrittenTurns, Long firstAudioMs) {
     }
 
-    public record PodcastDetail(PodcastSummary podcast, int pageCount, Quality quality, List<BlockView> blocks) {
+    public record PodcastDetail(PodcastSummary podcast, int pageCount, Quality quality, String downloadUrl,
+                                List<BlockView> blocks) {
 
-        public static PodcastDetail of(Podcast p, List<BlockView> blocks) {
+        public static PodcastDetail of(Podcast p, List<BlockView> blocks, String downloadUrl) {
             Long firstAudio = p.getFirstAudioAt() == null ? null
                     : p.getFirstAudioAt().toEpochMilli() - p.getCreatedAt().toEpochMilli();
             Quality quality = new Quality(p.getTotalTurns(), p.getRemovedTurns(), p.getRewrittenTurns(), firstAudio);
-            return new PodcastDetail(PodcastSummary.of(p), p.getPageCount(), quality, blocks);
+            return new PodcastDetail(PodcastSummary.of(p), p.getPageCount(), quality, downloadUrl, blocks);
         }
     }
 

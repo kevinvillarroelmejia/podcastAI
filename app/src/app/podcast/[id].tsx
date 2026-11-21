@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Linking, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { Check, Pause, Play, RotateCcw, RotateCw, Share2, Trash2 } from 'lucide-react-native';
+import { Check, Download, Pause, Play, RotateCcw, RotateCw, Share2, Trash2 } from 'lucide-react-native';
 import { api, ApiError, type BlockView, type PodcastDetail } from '../../lib/api';
 import { formatDuration, modeLabel, spokenDuration } from '../../lib/format';
 import { fonts, radius, spacing, useTheme } from '../../lib/theme';
@@ -166,6 +166,19 @@ export default function PodcastScreen() {
     }
   }
 
+  /** Descarga el podcast entero en un MP3 (el navegador o el sistema lo guardan en Descargas). */
+  function download() {
+    if (!detail?.downloadUrl) return;
+    if (Platform.OS === 'web') {
+      const a = document.createElement('a');
+      a.href = detail.downloadUrl;
+      a.download = `${detail.podcast.title}.mp3`;
+      a.click();
+    } else {
+      Linking.openURL(detail.downloadUrl);
+    }
+  }
+
   async function remove() {
     if (!confirmDelete) {
       setConfirmDelete(true);
@@ -320,6 +333,16 @@ export default function PodcastScreen() {
                 </View>
               ))}
           </View>
+        ) : null}
+
+        {detail.downloadUrl ? (
+          <Button
+            label={finished ? 'Descargar MP3' : 'Descargar lo que hay hasta ahora (MP3)'}
+            variant="secondary"
+            icon={<Download color={theme.text} size={20} strokeWidth={1.75} />}
+            onPress={download}
+            accessibilityHint="Guarda el podcast completo en un archivo de audio"
+          />
         ) : null}
 
         {finished ? <QualityNote detail={detail} /> : null}

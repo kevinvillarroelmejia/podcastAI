@@ -40,6 +40,7 @@ export interface PodcastDetail {
   podcast: PodcastSummary;
   pageCount: number;
   quality: { keptTurns: number; removedTurns: number; rewrittenTurns: number; firstAudioMs: number | null };
+  downloadUrl: string | null;
   blocks: BlockView[];
 }
 

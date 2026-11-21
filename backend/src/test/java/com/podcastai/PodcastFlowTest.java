@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -93,6 +94,19 @@ class PodcastFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("audio/mpeg"));
         mvc.perform(get(audio.getPath() + "?exp=9999999999&sig=falsa")).andExpect(status().isForbidden());
+
+        URI download = URI.create(detail.path("downloadUrl").asText());
+        byte[] full = mvc.perform(get(download.getPath() + "?" + download.getQuery()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("audio/mpeg"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment")))
+                .andReturn().getResponse().getContentAsByteArray();
+        long totalMs = 0;
+        for (JsonNode b : detail.path("blocks")) {
+            totalMs += b.path("durationMs").asLong();
+        }
+        assertThat(com.podcastai.tts.Mp3.durationMs(full)).isBetween(totalMs - 100, totalMs + 100);
+        mvc.perform(get(download.getPath() + "?exp=9999999999&sig=falsa")).andExpect(status().isForbidden());
 
         // Segundo podcast: ya no quedan gratis.
         mvc.perform(multipart("/api/podcasts").file(samplePdf()).param("mode", "RESUMEN")

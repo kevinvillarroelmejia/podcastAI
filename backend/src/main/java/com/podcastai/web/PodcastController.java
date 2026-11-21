@@ -6,7 +6,11 @@ import java.util.UUID;
 
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -79,6 +83,18 @@ public class PodcastController {
                 .contentType(MediaType.parseMediaType("audio/mpeg"))
                 .cacheControl(CacheControl.noStore())
                 .body(new FileSystemResource(file));
+    }
+
+    /** Descarga el podcast completo como un único MP3. También va firmado en la URL. */
+    @GetMapping("/api/audio/{id}/completo")
+    public ResponseEntity<byte[]> download(@PathVariable UUID id, @RequestParam long exp, @RequestParam String sig) {
+        PodcastService.DownloadedAudio audio = service.fullAudio(id, exp, sig);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("audio/mpeg"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(audio.fileName(), StandardCharsets.UTF_8).build().toString())
+                .cacheControl(CacheControl.noStore())
+                .body(audio.data());
     }
 
     private String baseUrl() {
