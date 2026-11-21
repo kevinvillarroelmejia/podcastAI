@@ -39,41 +39,36 @@ flowchart LR
 
 ## Arrancar en local
 
-Necesitas Java 21, Maven y Node 22.
+Necesitas **Java 21** y **Node 22**. No hace falta instalar Maven: el proyecto trae `mvnw`.
 
-```bash
-# 1. Backend (sin claves arranca en modo de prueba)
-cd backend
-mvn spring-boot:run
-# → http://localhost:8080/actuator/health
+1. Copia `.env.example` a `.env` (en la raíz del proyecto) y rellena `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` y
+   `SIGNING_SECRET`. El backend lee ese archivo solo. Sin claves arranca en **modo de prueba**: el guion se arma con
+   frases literales del PDF y el audio es silencio, para probar todo el flujo gratis.
+2. Backend:
 
-# 2. App
-cd app
-npm install
-npx expo start          # pulsa w para abrirla en el navegador, o escanea el QR con Expo Go
-```
+   ```bash
+   cd backend
+   ./mvnw spring-boot:run        # en Windows: mvnw.cmd spring-boot:run
+   # → http://localhost:8080/actuator/health
+   ```
 
-Para probar en el móvil, crea `app/.env` con la IP de tu ordenador en la red local:
+   En el log verás `Guion con Claude…` y `Voz con OpenAI…` si ha encontrado las claves.
+3. App (en otra terminal):
+
+   ```bash
+   cd app
+   npm install
+   npx expo start --web          # se abre en el navegador
+   ```
+
+Para probarla en el móvil con Expo Go, crea `app/.env` con la IP de tu ordenador en la red local y arranca
+`npx expo start` (escanea el QR):
 
 ```
 EXPO_PUBLIC_API_URL=http://192.168.1.50:8080
 ```
 
-### Con tus claves
-
-Copia `.env.example` a `.env`, rellena `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` y `SIGNING_SECRET`, y exporta las
-variables antes de arrancar el backend (o usa `docker compose up`, que las lee de `.env`):
-
-```bash
-set -a; source .env; set +a
-cd backend && mvn spring-boot:run
-```
-
-En el log verás `Guion con Claude…` y `Voz con OpenAI…`. Si falta una clave, ese paso usa el modo de prueba:
-el guion se arma con frases literales del PDF y el audio es silencio de la duración correcta, así se puede probar
-todo el flujo gratis. La pantalla **Cuenta y plan** avisa cuando el servidor está en modo de prueba.
-
-> Ninguna clave va en el código ni en la app. Solo el backend las lee, de variables de entorno.
+> Ninguna clave va en el código ni en la app. Solo el backend las lee.
 
 ## Variables de entorno
 
