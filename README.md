@@ -58,6 +58,8 @@ Necesitas **Java 21** y **Node 22**. No hace falta instalar Maven: el proyecto t
 1. Copia `.env.example` a `.env` (en la raíz del proyecto) y rellena `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` y
    `SIGNING_SECRET`. El backend lee ese archivo solo. Sin claves arranca en **modo de prueba**: el guion se arma con
    frases literales del PDF y el audio es silencio, para probar todo el flujo gratis.
+   Si la usas tú solo, añade también `DEV_PREMIUM=true`: así no tienes el límite de un podcast gratis y puedes usar
+   el modo A fondo. Los minutos los pagas igualmente en Claude y ElevenLabs.
 2. Backend:
 
    ```bash
