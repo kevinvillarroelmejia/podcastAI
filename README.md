@@ -1,5 +1,7 @@
 # podcastAI
 
+![podcastAI](docs/portada.png)
+
 Sube un PDF de estudio y dos IAs, **Lía** (presentadora) y **Marco** (experto), lo convierten en un podcast
 conversado en tu idioma, fiel al contenido del PDF. El audio se genera por bloques de unos 60 segundos y
 empieza a sonar en cuanto está el primero.
@@ -10,6 +12,10 @@ empieza a sonar en cuanto está el primero.
 - **Voz:** con `ELEVENLABS_API_KEY`, todos los podcasts (Resumen y A fondo) usan **ElevenLabs v3 en modo diálogo**: la conversación del bloque se interpreta de una vez, con risas,
   dudas e interrupciones (`[laughs]`, `[jumping in]`…) que Claude escribe en el guion. Las marcas no se ven en la
   transcripción.
+
+| Inicio | Nuevo podcast | Escuchar | Guion |
+|---|---|---|---|
+| ![Inicio](docs/capturas/inicio.png) | ![Nuevo podcast](docs/capturas/nuevo.png) | ![Reproductor](docs/capturas/escuchar.png) | ![Guion](docs/capturas/guion.png) |
 
 ## Cómo funciona
 
