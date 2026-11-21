@@ -31,6 +31,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.podcastai.tts.BlockAudio;
 import com.podcastai.tts.ElevenLabsDialogueEngine;
 import com.podcastai.tts.Mp3;
+import com.podcastai.tts.VoiceAccountException;
 
 /**
  * Las cuentas Premium usan la voz de ElevenLabs; las gratis, la estándar.
@@ -97,5 +98,34 @@ class PremiumVoiceTest {
         JsonNode segment = detail.path("blocks").get(0).path("segments").get(1);
         assertThat(segment.path("startMs").asLong()).isEqualTo(1000L);
         verify(elevenLabs, atLeastOnce()).synthesize(anyList(), anyList(), anyString());
+    }
+
+    @Test
+    void premiumFallsBackToStandardVoiceWhenElevenLabsNeedsPayment() throws Exception {
+        when(elevenLabs.isConfigured()).thenReturn(true);
+        when(elevenLabs.synthesize(anyList(), anyList(), anyString()))
+                .thenThrow(new VoiceAccountException("ElevenLabs pide un plan de pago o más créditos para esta voz."));
+        MockMultipartFile pdf = new MockMultipartFile("file", "tema.pdf", "application/pdf", TestPdfs.withPages(
+                "Los hilos virtuales son ligeros y los gestiona la JVM.\nPermiten miles de tareas a la vez.",
+                "Un semaforo limita cuantas tareas acceden a un recurso.\nSe libera al terminar."));
+
+        String premium = UUID.randomUUID().toString();
+        mvc.perform(post("/api/webhooks/revenuecat").contentType(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer secreto")
+                .content("{\"event\":{\"type\":\"INITIAL_PURCHASE\",\"app_user_id\":\"" + premium + "\"}}"))
+                .andExpect(status().isOk());
+        String created = mvc.perform(multipart("/api/podcasts").file(pdf).header("X-Device-Id", premium))
+                .andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString();
+        String id = mapper.readTree(created).path("id").asText();
+        JsonNode detail = null;
+        boolean finished = false;
+        for (int i = 0; i < 100 && !finished; i++) {
+            detail = mapper.readTree(mvc.perform(get("/api/podcasts/" + id).header("X-Device-Id", premium))
+                    .andReturn().getResponse().getContentAsString());
+            String state = detail.path("podcast").path("status").asText();
+            finished = "READY".equals(state) || "FAILED".equals(state);
+            Thread.sleep(finished ? 0 : 100);
+        }
+        assertThat(detail.path("podcast").path("status").asText()).isEqualTo("READY");
     }
 }

@@ -41,6 +41,7 @@ import com.podcastai.tts.ElevenLabsDialogueEngine;
 import com.podcastai.tts.Mp3;
 import com.podcastai.tts.TtsEngine;
 import com.podcastai.tts.TtsException;
+import com.podcastai.tts.VoiceAccountException;
 
 /**
  * El pipeline del podcast: mapa → por cada bloque (guion → verificación → voz) → audio listo.
@@ -171,10 +172,7 @@ public class PodcastPipeline {
             block.setStatus(BlockStatus.SKIPPED);
             blocks.save(block);
         } else {
-            BlockAudio blockAudio = podcast.usesExpressiveVoice()
-                    ? premiumVoice.synthesize(verified.turns().stream().map(Turn::text).toList(),
-                            verified.turns().stream().map(t -> Speaker.parse(t.speaker())).toList(), podcast.getLanguage())
-                    : synthesizeStandard(verified.turns(), podcast.getLanguage(), ttsPermits);
+            BlockAudio blockAudio = synthesizeBlock(podcast, verified.turns(), ttsPermits);
             List<Segment> blockSegments = new ArrayList<>();
             for (int i = 0; i < verified.turns().size(); i++) {
                 Turn turn = verified.turns().get(i);
@@ -203,6 +201,27 @@ public class PodcastPipeline {
         podcast.setRewrittenTurns(podcast.getRewrittenTurns() + verified.rewritten());
         saveProgress(podcast);
         return newTail;
+    }
+
+    /**
+     * Voz Premium si toca. Si la cuenta de ElevenLabs no puede (sin créditos, plan de pago, clave inválida),
+     * el podcast sigue con la voz estándar en lugar de fallar.
+     */
+    private BlockAudio synthesizeBlock(Podcast podcast, List<Turn> turns, Semaphore permits) {
+        BlockAudio result = null;
+        if (podcast.usesExpressiveVoice()) {
+            try {
+                result = premiumVoice.synthesize(turns.stream().map(Turn::text).toList(),
+                        turns.stream().map(t -> Speaker.parse(t.speaker())).toList(), podcast.getLanguage());
+            } catch (VoiceAccountException e) {
+                log.warn("Podcast {}: {} Se usa la voz estándar.", podcast.getId(), e.getMessage());
+                podcast.setVoice(tts.name());
+            }
+        }
+        if (result == null) {
+            result = synthesizeStandard(turns, podcast.getLanguage(), permits);
+        }
+        return result;
     }
 
     /** Voz estándar: una petición por intervención, en paralelo, y se miden para sincronizar la transcripción. */

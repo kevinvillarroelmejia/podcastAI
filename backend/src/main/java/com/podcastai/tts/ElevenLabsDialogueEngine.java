@@ -115,7 +115,7 @@ public class ElevenLabsDialogueEngine {
                 if (status == 200) {
                     result = parse(response.body(), texts.size());
                 } else if (status == 401) {
-                    throw new TtsException("La clave de ElevenLabs no es válida. Revisa ELEVENLABS_API_KEY en el .env.");
+                    throw new VoiceAccountException("La clave de ElevenLabs no es válida. Revisa ELEVENLABS_API_KEY en el .env.");
                 } else if (status == 429 || status >= 500) {
                     lastError = "HTTP " + status;
                     log.warn("ElevenLabs respondió {} (intento {}/{}): {}", status, attempt, MAX_ATTEMPTS,
@@ -123,7 +123,7 @@ public class ElevenLabsDialogueEngine {
                     pause(2000L * attempt * attempt);
                 } else {
                     log.warn("ElevenLabs respondió {}: {}", status, abbreviate(response.body()));
-                    throw new TtsException(friendly(status, response.body()));
+                    throw friendly(status, response.body());
                 }
             } catch (IOException e) {
                 lastError = e.getMessage();
@@ -169,14 +169,17 @@ public class ElevenLabsDialogueEngine {
     record ChunkResult(byte[] audio, List<Long> startMs, List<Long> endMs) {
     }
 
-    private static String friendly(int status, String body) {
-        String message = "La voz de ElevenLabs ha fallado (HTTP " + status + ").";
-        if (body != null && (body.contains("quota") || body.contains("credits"))) {
-            message = "Tu cuenta de ElevenLabs no tiene créditos suficientes.";
-        } else if (body != null && body.contains("voice_not_found")) {
-            message = "No existe una de las voces de ElevenLabs configuradas (ELEVENLABS_HOST_VOICE / ELEVENLABS_EXPERT_VOICE).";
+    static TtsException friendly(int status, String body) {
+        String text = body == null ? "" : body;
+        TtsException error = new TtsException("La voz de ElevenLabs ha fallado (HTTP " + status + ").");
+        if (status == 402) {
+            error = new VoiceAccountException("ElevenLabs pide un plan de pago o más créditos para esta voz.");
+        } else if (text.contains("quota") || text.contains("credits")) {
+            error = new VoiceAccountException("Tu cuenta de ElevenLabs no tiene créditos suficientes.");
+        } else if (text.contains("voice_not_found")) {
+            error = new TtsException("No existe una de las voces de ElevenLabs configuradas (ELEVENLABS_HOST_VOICE / ELEVENLABS_EXPERT_VOICE).");
         }
-        return message;
+        return error;
     }
 
     private static String abbreviate(String text) {
