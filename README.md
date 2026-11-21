@@ -39,6 +39,18 @@ flowchart LR
 6. **Entrega.** La app consulta el estado y, en cuanto hay un bloque, muestra **Escuchar ya**. Al acabar un bloque
    pasa al siguiente; si aún no está, espera a que llegue.
 
+## Antes de empezar: qué cuesta
+
+podcastAI es de código abierto, pero usa dos servicios de pago, y **cada persona que la instale pone sus propias claves**
+en su `.env`. Sin claves funciona igual en modo de prueba (sin voz real).
+
+- **Claude (Anthropic):** crea una clave en console.anthropic.com y añade saldo. Un resumen cuesta unos céntimos.
+- **ElevenLabs:** hace falta un plan de pago (el Starter basta: unos 3 o 4 resúmenes de 8 minutos al mes). Con el plan
+  gratis la API responde 402.
+- **OpenAI** (opcional): solo se usa si no hay clave de ElevenLabs.
+
+Las claves viven en `.env`, que está en `.gitignore` y nunca se sube al repositorio.
+
 ## Arrancar en local
 
 Necesitas **Java 21** y **Node 22**. No hace falta instalar Maven: el proyecto trae `mvnw`.
