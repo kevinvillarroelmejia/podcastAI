@@ -55,7 +55,7 @@ podcastai:
     model: ${TTS_MODEL:gpt-4o-mini-tts}
     host-voice: ${TTS_HOST_VOICE:coral}
     expert-voice: ${TTS_EXPERT_VOICE:ash}
-    concurrency: 4
+    concurrency: ${TTS_CONCURRENCY:2}
   limits:
     max-pdf-pages: 100
     max-source-chars: 400000
